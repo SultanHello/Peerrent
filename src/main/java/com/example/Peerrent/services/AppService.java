@@ -1,10 +1,7 @@
 package com.example.Peerrent.services;
 
+import com.example.Peerrent.modules.*;
 import com.example.Peerrent.modules.DTO.ItemDTO;
-import com.example.Peerrent.modules.Item;
-import com.example.Peerrent.modules.RegUser;
-import com.example.Peerrent.modules.Role;
-import com.example.Peerrent.modules.User;
 import com.example.Peerrent.repositories.ItemRepository;
 import com.example.Peerrent.repositories.UserRepository;
 import jakarta.persistence.Id;
@@ -16,6 +13,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
+import java.time.LocalDateTime;
+import java.time.Period;
+import java.time.ZoneId;
+import java.util.Date;
 import java.util.List;
 
 @AllArgsConstructor
@@ -75,13 +76,43 @@ public class AppService {
         User client =userRepository.findByEmail(SecurityContextHolder.getContext().getAuthentication().getName());
         Item item = itemRepository.findById(id).orElse(null);
         client.getRentItems().add(item);
-        if (item != null) {
-            client.getRentItems().add(item);
-            item.setClient(client);
-            itemRepository.save(item);
-            userRepository.save(client);
-            return "Success";
+        int time = item.getTime();
+        if(item!=null){
+            if(item.getTimeType().equals(Time.HOUR)){
+                client.getRentItems().add(item);
+                item.setClient(client);
+                item.setStartRent(new Date(System.currentTimeMillis()));
+                item.setEndRent(new Date(System.currentTimeMillis()+ (long) time *60*60*1000));
+                itemRepository.save(item);
+                userRepository.save(client);
+                return "Success";
+
+            }else if(item.getTimeType().equals(Time.DAY)){
+                client.getRentItems().add(item);
+                item.setClient(client);
+                item.setStartRent(new Date(System.currentTimeMillis()));
+                item.setEndRent(new Date(System.currentTimeMillis()+(long) time*24*60*60*60));
+                itemRepository.save(item);
+                userRepository.save(client);
+                return "Success";
+
+            }else{
+                client.getRentItems().add(item);
+                item.setClient(client);
+                item.setStartRent(new Date(System.currentTimeMillis()));
+                item.setEndRent(new Date(LocalDateTime.now()
+                        .plus(Period.ofMonths(item.getTime()))
+                        .atZone(ZoneId.of("UTC"))
+                        .toInstant()
+                        .toEpochMilli()));
+                itemRepository.save(item);
+                userRepository.save(client);
+                return "Success";
+            }
+
         }
+
+
 
         return "error not found";
 
